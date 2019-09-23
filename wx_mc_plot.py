@@ -1,4 +1,13 @@
 #! /usr/bin/env python3
+import sys
+import numpy as np
+from collections import defaultdict
+
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import matplotlib.gridspec as gridspec
+
+from zmq_sub import zmq_sub_option, ZMQ_sub_buffered
 
 """
 ('NoNe@Motor_id_123',
@@ -16,15 +25,6 @@
   'torque': -4.564897060394287})
 """
 
-import sys
-import numpy as np
-from collections import defaultdict
-
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import matplotlib.gridspec as gridspec
-
-from zmq_sub import zmq_sub_option, ZMQ_sub_buffered
 
 #lin10, = ax6.plot([], [], lw=2, label='p_err')
 #lin11, = ax6.plot([], [], lw=2, label='v_err')
@@ -38,85 +38,72 @@ class LivePlot(object):
         self.th = ZMQ_sub_buffered(**dict_opt)
 
         self.plot_data = defaultdict(list)  # type: defaultdict[Any, list]
-        self.fig = plt.figure()
+        self.lines = dict()
+        self.axes = dict()
 
-        gs = gridspec.GridSpec(4, 3)
+        fig = plt.figure()
+        gs = gridspec.GridSpec(5, 3)
 
-        ax1 = self.fig.add_subplot(gs[0, :], xlim=(0, 5000), ylim=(-3.5, 3.5))
-        ax2 = self.fig.add_subplot(gs[1, :], xlim=(0, 5000), ylim=(-10, 10))
-        ax3 = self.fig.add_subplot(gs[2, :], xlim=(0, 5000), ylim=(-60, 60))
-        ax4 = self.fig.add_subplot(gs[3, 0], xlim=(0, 5000), ylim=(900, 1100))
-        ax5 = self.fig.add_subplot(gs[3, 1], xlim=(0, 5000), ylim=(20, 90))
-        #ax6 = self.fig.add_subplot(gs[3, 2], xlim=(0, 5000), ylim=(0, 0.1))
+        self.x_dim = 10000
 
-        lin1, = ax1.plot([], [], lw=2, label='link_pos')
-        #lin2, = ax1.plot([], [], lw=2, label='ref_fb')
-        lin3, = ax1.plot([], [], lw=2, label='motor_pos')
+        self.axes["pos"] = fig.add_subplot(gs[0, :], xlim=(0, self.x_dim), ylim=(-1.5, 1.5))
+        self.axes["vel"] = fig.add_subplot(gs[1, :], xlim=(0, self.x_dim), ylim=(-0.5, 0.5))
+        self.axes["tor"] = fig.add_subplot(gs[3, :], xlim=(0, self.x_dim), ylim=(-5, 5))
+        self.axes["rtt"] = fig.add_subplot(gs[4, 0], xlim=(0, self.x_dim), ylim=(900, 1100))
+        self.axes["tmp"] = fig.add_subplot(gs[4, 1], xlim=(0, self.x_dim), ylim=(20, 90))
+        self.axes["aux"] = fig.add_subplot(gs[2, :], xlim=(0, self.x_dim))
 
-        lin4, = ax3.plot([], [], lw=2, label='torque')
+        self.lines['_motor_pos'],  = self.axes["pos"].plot([], [], lw=1, label='motor_pos')
+        self.lines['_link_pos'],   = self.axes["pos"].plot([], [], lw=1, label='link_pos')
+        self.lines['_motor_vel'],  = self.axes["vel"].plot([], [], lw=1, label='motor_vel')
+        self.lines['_link_vel'],   = self.axes["vel"].plot([], [], lw=1, label='link_vel')
+        self.lines['_torque'],     = self.axes["tor"].plot([], [], lw=1, label='torque')
+        self.lines['_rtt'],        = self.axes["rtt"].plot([], [], lw=1, label='rtt')
+        self.lines['_motor_temp'], = self.axes["tmp"].plot([], [], lw=1, label='mT')
+        self.lines['_board_temp'], = self.axes["tmp"].plot([], [], lw=1, label='bT')
+        self.lines['_aux'],        = self.axes["aux"].plot([], [], lw=1, label='aux')
 
-        lin5, = ax2.plot([], [], lw=2, label='link_vel')
-        lin6, = ax2.plot([], [], lw=2, label='motor_vel')
+        for ax in self.axes.values():
+            ax.legend()
+            ax.grid()
 
-        lin7, = ax4.plot([], [], lw=2, label='rtt')
-
-        lin8, = ax5.plot([], [], lw=2, label='mT')
-        lin9, = ax5.plot([], [], lw=2, label='bT')
-
-        ax1.legend()
-        ax2.legend()
-        ax3.legend()
-        ax4.legend()
-        ax5.legend()
-        #ax6.legend()
-
-        self.lines = [
-            lin1,
-            #    lin2,
-            lin3,
-            lin4,
-            lin5,
-            lin6,
-            lin7,
-            lin8,
-            lin9,
-            #    lin10,
-            #    lin11,
-        ]
-
-        self.var_names = (
-            '_link_pos',
-            #    '_ref_pos',
-            '_motor_pos',
-            '_torque',
-            '_link_vel',
-            '_motor_vel',
-            '_rtt',
-            '_motor_temp',
-            '_board_temp',
-            #    '_p_err',
-        )
-
-        for l in self.lines:
-            l.set_data([], [])
-
-        self.ani = animation.FuncAnimation(self.fig, self.animate, interval=50, blit=True)
+        self.ani = animation.FuncAnimation(fig, self.animate, interval=50, blit=True)
         self.th.start()
         self.show()
 
     def animate(self, i):
         new_data = self.th.next()
+
         for k in self.plot_data.keys():
             self.plot_data[k].extend(new_data[k])
-            self.plot_data[k] = self.plot_data[k][-5000:]
+            self.plot_data[k] = self.plot_data[k][-self.x_dim:]
 
-        x = np.arange(len(self.plot_data[self.th.key_prefix+'_link_pos']))
+        x = np.arange(len(self.plot_data[self.th.key_prefix+'_motor_pos']))
 
-        for name, lin in zip(self.var_names, self.lines):
+        for name, lin in self.lines.items():
             y = np.array(self.plot_data[self.th.key_prefix + name])
+
+            if len(y):
+                ax = None
+                if name in ('_motor_vel', '_link_vel'):
+                    ax = self.axes["vel"]
+                if name in ('_motor_pos', '_link_pos'):
+                    ax = self.axes["pos"]
+                if name in ('_torque',):
+                    ax = self.axes["tor"]
+                if name in ('_aux',):
+                    ax = self.axes["aux"]
+                if ax:
+                    mi, ma = ax.get_ylim()
+                    ymin = y.min()
+                    ymax = y.max()
+                    #print(ymin, ymax, mi, ma)
+                    ax.set_ylim(ymin - 0.1 * (ymax - ymin), ymax + 0.1 * (ymax - ymin))
+                    #ax.figure.canvas.draw()
+
             lin.set_data(x, y)
 
-        return self.lines
+        return self.lines.values()
 
     @staticmethod
     def show():

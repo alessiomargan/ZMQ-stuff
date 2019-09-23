@@ -47,7 +47,6 @@ def default_cb(msg_id, data, signals):
     
     if len(signals):
         raise BaseException("signals filter NOT supported")
-    pprint.pprint(msg_id, data)
     return msg_id, data
 
 
@@ -59,7 +58,6 @@ def json_cb(msg_id, data, signals):
             json_dict = {key: json_dict[key] for key in signals if key in json_dict.keys()}
         except KeyError:
             json_dict = {}
-    pprint.pprint((msg_id, json_dict))
     return msg_id, json_dict
 
 
@@ -80,7 +78,7 @@ def protobuf_cb(msg_id, data, signals):
     rx_pdo = ecat_pdo_pb2.Ec_slave_pdo()
     rx_pdo.ParseFromString(data)
     pb_dict = protobuf_to_dict(rx_pdo)
-    #print pb_dict
+    #print(pb_dict)
     
     if rx_pdo.type == rx_pdo.RX_XT_MOTOR:
         # motor pdo56 byte
@@ -118,7 +116,6 @@ def protobuf_cb(msg_id, data, signals):
     elif rx_pdo.type == rx_pdo.RX_POW_F28M36:
         pb_dict = filter_dict('powF28M36_rx_pdo', pb_dict)
 
-    pprint.pprint((msg_id, pb_dict))
     return msg_id, pb_dict
 
 
@@ -202,8 +199,10 @@ class ZMQ_sub(threading.Thread):
                     print(e)
                     continue
                 
-                self.callback(msg_id, data, self.signals)
-                
+                msg_id, out_data = self.callback(msg_id, data, self.signals)
+                if __name__ == '__main__':
+                    pprint.pprint((msg_id, out_data))
+
             else:
                 print(datetime.datetime.now(), socks, ("poller timeout"))
 
@@ -220,13 +219,13 @@ class ZMQ_sub_buffered(ZMQ_sub):
         self.buffered = defaultdict(list)
         self.lock_buff = threading.RLock()
         ZMQ_sub.__init__(self, **kwargs)
+        self.origin_cb = self.callback
         self.callback = self.on_rx
         self.key_prefix = kwargs.get('key_prefix')
 
     def on_rx(self, msg_id, data, signals):
         with self.lock_buff:
-            # msg_id, data_dict = json_cb(msg_id, data, signals)
-            msg_id, data_dict = protobuf_cb(msg_id, data, signals)
+            msg_id, data_dict = self.origin_cb(msg_id, data, signals)
             self.buffered[msg_id].append(data_dict)
         self.elapsed += self.msg_loop
         return msg_id, data_dict
@@ -235,7 +234,7 @@ class ZMQ_sub_buffered(ZMQ_sub):
         data = defaultdict(list)
         with self.lock_buff:
             for msg_id in self.buffered.keys():
-                print(msg_id, len(self.buffered[msg_id]))
+                #print(msg_id, len(self.buffered[msg_id]))
                 for d in self.buffered[msg_id]:
                     for key, v in d.items():
                         data[msg_id+'_'+key].append(v)
@@ -273,7 +272,7 @@ def zmq_sub_option(args):
     return dict_opt
     
     
-if __name__ == '__main__' :
+if __name__ == '__main__':
     
     import sys
     import csv 

@@ -4,123 +4,137 @@ import sys
 import numpy as np
 from collections import defaultdict
 
-import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.gridspec as gridspec
-#from typing import Any
+
 from zmq_sub import zmq_sub_option, ZMQ_sub_buffered
 
-print(matplotlib.__version__, matplotlib.__file__)
-
-
-gPlot_data = defaultdict(list)  # type: defaultdict[Any, list]
-global th
-
-fig = plt.figure()
-gs = gridspec.GridSpec(6, 1)
-
-f_lim = (-200, 200)
-t_lim = (-30, 30)
-
-
-
-ax1 = fig.add_subplot(gs[0, :], xlim=(0, 5000), ylim=f_lim)
-ax2 = fig.add_subplot(gs[1, :], xlim=(0, 5000), ylim=f_lim)
-ax3 = fig.add_subplot(gs[2, :], xlim=(0, 5000), ylim=f_lim)
-ax4 = fig.add_subplot(gs[3, :], xlim=(0, 5000), ylim=t_lim)
-ax5 = fig.add_subplot(gs[4, :], xlim=(0, 5000), ylim=t_lim)
-ax6 = fig.add_subplot(gs[5, :], xlim=(0, 5000), ylim=t_lim)
-
-lin1, = ax1.plot([], [], lw=1, label='ati_fx')
-lin11, = ax1.plot([], [], lw=1, label='iit_fx')
-
-lin2, = ax2.plot([], [], lw=1, label='ati_fy')
-lin22, = ax2.plot([], [], lw=1, label='iit_fy')
-
-lin3, = ax3.plot([], [], lw=1, label='ati_fz')
-lin33, = ax3.plot([], [], lw=1, label='iit_fz')
-
-lin4, = ax4.plot([], [], lw=1, label='ati_tx')
-lin44, = ax4.plot([], [], lw=1, label='iit_tx')
-
-lin5, = ax5.plot([], [], lw=1, label='ati_ty')
-lin55, = ax5.plot([], [], lw=1, label='iit_ty')
-
-lin6, = ax6.plot([], [], lw=1, label='ati_tz')
-lin66, = ax6.plot([], [], lw=1, label='iit_tz')
-
-ax1.legend()
-ax2.legend()
-ax3.legend()
-ax4.legend()
-ax5.legend()
-ax6.legend()
-
-ati_lines = (
-    #
-    lin1, lin2, lin3, lin4, lin5, lin6,
-    #
-    lin11, lin22, lin33, lin44, lin55, lin66,
+"""
+('NoNe@Ft_id_696',
+ {'fault': 1,
+  'force_x': 0.8883124589920044,
+  'force_y': 2.3079349994659424,
+  'force_z': 0.01067500002682209,
+  'rtt': 992,
+  'torque_x': 1.3453549146652222,
+  'torque_y': 1.1281949281692505,
+  'torque_z': 1.000095009803772}
 )
-ati_names = (
-    '_aforce_x',
-    '_aforce_y',
-    '_aforce_z',
-    '_atorque_x',
-    '_atorque_y',
-    '_atorque_z',
-    '_force_x',
-    '_force_y',
-    '_force_z',
-    '_torque_x',
-    '_torque_y',
-    '_torque_z',
+  
+('ATI@Ft_id_255',
+ {'aforce_x': 0.05375099927186966,
+  'aforce_y': -0.06818100064992905,
+  'aforce_z': -0.04397200047969818,
+  'atorque_x': 0.0014440000522881746,
+  'atorque_y': 2.700000004551839e-05,
+  'atorque_z': -0.0006000000284984708,
+  'force_x': 1.2506524324417114,
+  'force_y': 1.2450100183486938,
+  'force_z': 1.2424174547195435,
+  'torque_x': 1.250195026397705,
+  'torque_y': 1.2393674850463867,
+  'torque_z': 1.2389099597930908}
 )
+"""
 
-names = (
-    '_force_x',
-    '_force_y',
-    '_force_z',
-    '_torque_x',
-    '_torque_y',
-    '_torque_z',
-)
+class LivePlot(object):
 
-lines = ati_lines
-var_names = names
+    def __init__(self, opt):
 
-def init():
-    
-    for l in lines:
-        l.set_data([], [])
-    return lines
+        dict_opt = zmq_sub_option(opt)
+        self.th = ZMQ_sub_buffered(**dict_opt)
+
+        self.ati = False
+        self.num_axes = 3
+        if "ATI" in dict_opt["key_prefix"]:
+            self.ati = True
+            self.num_axes = 5
+
+        self.plot_data = defaultdict(list)  # type: defaultdict[Any, list]
+        self.lines = dict()
+        self.axes = dict()
+
+        fig = plt.figure()
+        gs = gridspec.GridSpec(self.num_axes, 1)
+
+        self.x_dim = 10000
+
+        self.axes["force"]  = fig.add_subplot(gs[0, :], xlim=(0, self.x_dim), ylim=(1.1, 1.4))
+        self.axes["torque"] = fig.add_subplot(gs[1, :], xlim=(0, self.x_dim), ylim=(1.1, 1.4))
+        if self.ati:
+            self.axes["aforce"] = fig.add_subplot(gs[2, :], xlim=(0, self.x_dim), ylim=(-300, 300))
+            self.axes["atorque"] = fig.add_subplot(gs[3, :], xlim=(0, self.x_dim), ylim=(-15, 15))
+        else:
+            self.axes["rtt"]    = fig.add_subplot(gs[2, :], xlim=(0, self.x_dim), ylim=(900, 2100))
+
+        self.lines['_force_x'],  = self.axes["force"].plot([], [], lw=1, label='Fx')
+        self.lines['_force_y'],  = self.axes["force"].plot([], [], lw=1, label='Fy')
+        self.lines['_force_z'],  = self.axes["force"].plot([], [], lw=1, label='Fz')
+        self.lines['_torque_x'], = self.axes["torque"].plot([], [], lw=1, label='Tx')
+        self.lines['_torque_y'], = self.axes["torque"].plot([], [], lw=1, label='Ty')
+        self.lines['_torque_z'], = self.axes["torque"].plot([], [], lw=1, label='Tz')
+        if self.ati:
+            self.lines['_aforce_x'],  = self.axes["aforce"].plot([], [], lw=1, label='Fx')
+            self.lines['_aforce_y'],  = self.axes["aforce"].plot([], [], lw=1, label='Fy')
+            self.lines['_aforce_z'],  = self.axes["aforce"].plot([], [], lw=1, label='Fz')
+            self.lines['_atorque_x'], = self.axes["atorque"].plot([], [], lw=1, label='Tx')
+            self.lines['_atorque_y'], = self.axes["atorque"].plot([], [], lw=1, label='Ty')
+            self.lines['_atorque_z'], = self.axes["atorque"].plot([], [], lw=1, label='Tz')
+        else:
+            self.lines['_rtt'],      = self.axes["rtt"].plot([], [], lw=1, label='rtt')
+
+        for ax in self.axes.values():
+            ax.legend()
+            ax.grid()
+
+        self.ani = animation.FuncAnimation(fig, self.animate, interval=50, blit=True)
+        self.th.start()
+        self.show()
+
+    def animate(self, i):
+        new_data = self.th.next()
+
+        for k in self.plot_data.keys():
+            self.plot_data[k].extend(new_data[k])
+            self.plot_data[k] = self.plot_data[k][-self.x_dim:]
+
+        x = np.arange(len(self.plot_data[self.th.key_prefix+'_force_x']))
+
+        for name, lin in self.lines.items():
+            y = np.array(self.plot_data[self.th.key_prefix + name])
+            lin.set_data(x, y)
+
+            if len(y):
+                ax = None
+                if name in ('_force_x', '_force_y', '_force_z'):
+                    ax = self.axes["force"]
+                elif name in ('_torque_x', '_torque_y', '_torque_z'):
+                    ax = self.axes["torque"]
+
+                if 0 and ax:
+                    mi, ma = ax.get_ylim()
+                    ymin = y.min()
+                    ymax = y.max()
+                    #print(ymin, ymax, mi, ma)
+                    ax.set_ylim(ymin - 0.1 * (ymax - ymin), ymax + 0.1 * (ymax - ymin))
 
 
-def animate(i):
+        return self.lines.values()
 
-    new_data = th.next()
-    for k in gPlot_data.keys():
-        gPlot_data[k].extend(new_data[k])
-        gPlot_data[k] = gPlot_data[k][-5000:]
+    @staticmethod
+    def show():
+        plt.show()
 
-    x = np.arange(len(gPlot_data[th.key_prefix+'_force_x']))
-
-    for name, lin in zip(var_names, lines):
-        y = np.array(gPlot_data[th.key_prefix + name])
-        lin.set_data(x, y)
-
-    return lines
+    def stop(self):
+        self.th.stop()
 
 
-if __name__ == '__main__' :
+if __name__ == '__main__':
 
-    dict_opt = zmq_sub_option(sys.argv[1:])
-    th = ZMQ_sub_buffered(**dict_opt)
-    th.start()
-
-    ani = animation.FuncAnimation(fig, animate, init_func=init, interval=100, blit=True)
-    plt.show()
-    
-    print ("Set thread event ....")
-    th.stop()
+    #arg = "--zmq-pub-gen-host=com-exp.local --zmq-pub-gen-port=9696  --key=NoNe@Ft_id_696"
+    #p = LivePlot(arg.split())
+    p = LivePlot(sys.argv[1:])
+    p.show()
+    print("Set thread event ....")
+    p.stop()
