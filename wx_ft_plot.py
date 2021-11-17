@@ -60,8 +60,8 @@ class LivePlot(object):
 
         self.x_dim = 10000
 
-        self.axes["force"]  = fig.add_subplot(gs[0, :], xlim=(0, self.x_dim), ylim=(1.1, 1.4))
-        self.axes["torque"] = fig.add_subplot(gs[1, :], xlim=(0, self.x_dim), ylim=(1.1, 1.4))
+        self.axes["force"]  = fig.add_subplot(gs[0, :], xlim=(0, self.x_dim), ylim=(-1.3, 1.3))
+        self.axes["torque"] = fig.add_subplot(gs[1, :], xlim=(0, self.x_dim), ylim=(-1.3, 1.3))
         if self.ati:
             self.axes["aforce"] = fig.add_subplot(gs[2, :], xlim=(0, self.x_dim), ylim=(-300, 300))
             self.axes["atorque"] = fig.add_subplot(gs[3, :], xlim=(0, self.x_dim), ylim=(-15, 15))

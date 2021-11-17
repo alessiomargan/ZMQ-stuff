@@ -51,7 +51,7 @@ class LivePlot(object):
         self.axes["tor"] = fig.add_subplot(gs[3, :], xlim=(0, self.x_dim), ylim=(-5, 5))
         self.axes["rtt"] = fig.add_subplot(gs[4, 0], xlim=(0, self.x_dim), ylim=(900, 1100))
         self.axes["tmp"] = fig.add_subplot(gs[4, 1], xlim=(0, self.x_dim), ylim=(20, 90))
-        self.axes["aux"] = fig.add_subplot(gs[2, :], xlim=(0, self.x_dim))
+        self.axes["aux"] = fig.add_subplot(gs[2, :], xlim=(0, self.x_dim), ylim=(-15, 15))
 
         self.lines['_motor_pos'],  = self.axes["pos"].plot([], [], lw=1, label='motor_pos')
         self.lines['_link_pos'],   = self.axes["pos"].plot([], [], lw=1, label='link_pos')
