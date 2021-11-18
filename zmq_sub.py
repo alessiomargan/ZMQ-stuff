@@ -1,4 +1,5 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import threading
 import datetime
@@ -12,7 +13,7 @@ from protobuf_to_dict import protobuf_to_dict
 import sys
 sys.path.append('/home/amargan/work/code/ecat_dev/ecat_master_advr/build/protobuf')
 import ecat_pdo_pb2
-
+import repl_cmd_pb2
 
 def zmq_pub_gen(hostname, port_range):
     def gen():
@@ -75,46 +76,61 @@ def protobuf_cb(msg_id, data, signals):
         else:
             return pb_dict[key]
 
+    if msg_id == "debugOut":
+        dbg_out = repl_cmd_pb2.Repl_async()
+        dbg_out.ParseFromString(data)
+        pb_dict = protobuf_to_dict(dbg_out)
+        return msg_id, pb_dict
+
+
     rx_pdo = ecat_pdo_pb2.Ec_slave_pdo()
     rx_pdo.ParseFromString(data)
     pb_dict = protobuf_to_dict(rx_pdo)
-    #print(pb_dict)
-    
-    if rx_pdo.type == rx_pdo.RX_XT_MOTOR:
-        # motor pdo56 byte
-        pb_dict = filter_dict('motor_xt_rx_pdo', pb_dict)
 
-    elif rx_pdo.type == rx_pdo.RX_MOTOR:
-        pb_dict = filter_dict('motor_rx_pdo', pb_dict)
+    try:
+        if rx_pdo.type == rx_pdo.RX_XT_MOTOR:
+            # motor pdo56 byte
+            pb_dict = filter_dict('motor_xt_rx_pdo', pb_dict)
 
-    elif rx_pdo.type == rx_pdo.RX_FT6:
-        pb_dict = filter_dict('ft6_rx_pdo', pb_dict)
-        try:
-            ati_dict = pb_dict['ft_ati_rx']
-            pb_dict.update(ati_dict)
-            pb_dict.pop('ft_ati_rx')
-        except KeyError:
-            pass
+        elif rx_pdo.type == rx_pdo.RX_MOTOR:
+            pb_dict = filter_dict('motor_rx_pdo', pb_dict)
 
-    elif rx_pdo.type == rx_pdo.RX_FOOT_SENS:
-        pb_dict = filter_dict('footWalkman_rx_pdo', pb_dict)
+        elif rx_pdo.type == rx_pdo.RX_FT6:
+            pb_dict = filter_dict('ft6_rx_pdo', pb_dict)
+            try:
+                ati_dict = pb_dict['ft_ati_rx']
+                pb_dict.update(ati_dict)
+                pb_dict.pop('ft_ati_rx')
+            except KeyError:
+                pass
 
-    elif rx_pdo.type == rx_pdo.RX_SKIN_SENS:
-        pb_dict = filter_dict('skin_rx_pdo', pb_dict)
-        # a = np.array(pb_dict['forceXY'])
-        # a = np.array([1 if z > 5 else 0 for z in pb_dict['forceXY']] )
-        # b = np.reshape(a, (8, 3))
-        # c = b.transpose()
-        # print (c)
-        
-    elif rx_pdo.type == rx_pdo.RX_MC_HAND:
-        pb_dict = filter_dict('mcHand_rx_pdo', pb_dict)
+        elif rx_pdo.type == rx_pdo.RX_FOOT_SENS:
+            pb_dict = filter_dict('footWalkman_rx_pdo', pb_dict)
 
-    elif rx_pdo.type == rx_pdo.RX_HERI_HAND:
-        pb_dict = filter_dict('heriHand_rx_pdo', pb_dict)
+        elif rx_pdo.type == rx_pdo.RX_SKIN_SENS:
+            pb_dict = filter_dict('skin_rx_pdo', pb_dict)
+            # a = np.array(pb_dict['forceXY'])
+            # a = np.array([1 if z > 5 else 0 for z in pb_dict['forceXY']] )
+            # b = np.reshape(a, (8, 3))
+            # c = b.transpose()
+            # print (c)
 
-    elif rx_pdo.type == rx_pdo.RX_POW_F28M36:
-        pb_dict = filter_dict('powF28M36_rx_pdo', pb_dict)
+        elif rx_pdo.type == rx_pdo.RX_MC_HAND:
+            pb_dict = filter_dict('mcHand_rx_pdo', pb_dict)
+
+        elif rx_pdo.type == rx_pdo.RX_HERI_HAND:
+            pb_dict = filter_dict('heriHand_rx_pdo', pb_dict)
+
+        elif rx_pdo.type == rx_pdo.RX_POW_F28M36:
+            pb_dict = filter_dict('powF28M36_rx_pdo', pb_dict)
+
+        elif rx_pdo.type == rx_pdo.DUMMY:
+            pb_dict = filter_dict('dummy_pdo', pb_dict)
+
+    except Exception as e:
+        print(pb_dict)
+        print(e)
+
 
     return msg_id, pb_dict
 

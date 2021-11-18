@@ -7,6 +7,9 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.gridspec as gridspec
+import seaborn as sns
+
+sns.set()
 
 from zmq_sub import zmq_sub_option, ZMQ_sub_buffered
 
@@ -56,14 +59,18 @@ class LivePlot(object):
         self.axes = dict()
 
         fig = plt.figure()
+        plt.tight_layout()
         gs = gridspec.GridSpec(self.num_axes, 1)
 
         self.x_dim = 10000
 
-        self.axes["force"]  = fig.add_subplot(gs[0, :], xlim=(0, self.x_dim), ylim=(-1.3, 1.3))
-        self.axes["torque"] = fig.add_subplot(gs[1, :], xlim=(0, self.x_dim), ylim=(-1.3, 1.3))
+        #self.axes["force"]  = fig.add_subplot(gs[0, :], xlim=(0, self.x_dim), ylim=(-50, 50))
+        #self.axes["torque"] = fig.add_subplot(gs[1, :], xlim=(0, self.x_dim), ylim=(-10, 10))
+        self.axes["force"] = fig.add_subplot(gs[0, :], xlim=(0, self.x_dim),  ylim=(-1.5, 1.5))
+        self.axes["torque"] = fig.add_subplot(gs[1, :], xlim=(0, self.x_dim), ylim=(-1.5, 1.5))
+
         if self.ati:
-            self.axes["aforce"] = fig.add_subplot(gs[2, :], xlim=(0, self.x_dim), ylim=(-300, 300))
+            self.axes["aforce"] = fig.add_subplot(gs[2, :], xlim=(0, self.x_dim), ylim=(-200, 200))
             self.axes["atorque"] = fig.add_subplot(gs[3, :], xlim=(0, self.x_dim), ylim=(-15, 15))
         else:
             self.axes["rtt"]    = fig.add_subplot(gs[2, :], xlim=(0, self.x_dim), ylim=(900, 2100))
@@ -71,6 +78,7 @@ class LivePlot(object):
         self.lines['_force_x'],  = self.axes["force"].plot([], [], lw=1, label='Fx')
         self.lines['_force_y'],  = self.axes["force"].plot([], [], lw=1, label='Fy')
         self.lines['_force_z'],  = self.axes["force"].plot([], [], lw=1, label='Fz')
+        #self.lines['_torque_x'], = self.axes["force"].plot([], [], lw=1, label='Tx')
         self.lines['_torque_x'], = self.axes["torque"].plot([], [], lw=1, label='Tx')
         self.lines['_torque_y'], = self.axes["torque"].plot([], [], lw=1, label='Ty')
         self.lines['_torque_z'], = self.axes["torque"].plot([], [], lw=1, label='Tz')
@@ -105,14 +113,14 @@ class LivePlot(object):
             y = np.array(self.plot_data[self.th.key_prefix + name])
             lin.set_data(x, y)
 
-            if len(y):
+            if 0 and len(y):
                 ax = None
                 if name in ('_force_x', '_force_y', '_force_z'):
                     ax = self.axes["force"]
                 elif name in ('_torque_x', '_torque_y', '_torque_z'):
                     ax = self.axes["torque"]
 
-                if 0 and ax:
+                if 1 and ax:
                     mi, ma = ax.get_ylim()
                     ymin = y.min()
                     ymax = y.max()
