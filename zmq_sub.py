@@ -35,7 +35,7 @@ def zmq_pub_gen(hostname, port_range):
 # DEFAULT_ZMQ_PUB = zmq_pub_gen('coman-disney.local', range(9001,9038))
 # DEFAULT_ZMQ_PUB = zmq_pub_gen('coman-disney.local', [9034,9035,9036,9037])
 # DEFAULT_ZMQ_PUB = zmq_pub_gen('coman-disney.local', [9037])
-DEFAULT_ZMQ_PUB = zmq_pub_gen('localhost', range(9000, 9100))
+DEFAULT_ZMQ_PUB = zmq_pub_gen('localhost', range(9100, 9200))
 # DEFAULT_ZMQ_PUB = zmq_pub_gen('localhost', range(9801,9804))
 # DEFAULT_ZMQ_PUB = zmq_pub_gen('com-exp.local', range(9500,9600))
 # DEFAULT_ZMQ_PUB = zmq_pub_gen('com-exp.local', [9501,10103,10104])
@@ -270,6 +270,7 @@ def zmq_sub_option(args):
     parser.add_option("--cb", action="store", type="string", dest="cb", default="protobuf_cb")
     # used in wx_animation
     parser.add_option("--key", action="store", type="string", dest="key_prefix", default="")
+    parser.add_option("--volt", action="store_true", dest="use_volt")
     (options, args) = parser.parse_args(args=args)
     dict_opt = vars(options)
 

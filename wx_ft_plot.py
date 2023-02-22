@@ -64,31 +64,36 @@ class LivePlot(object):
 
         self.x_dim = 10000
 
-        #self.axes["force"]  = fig.add_subplot(gs[0, :], xlim=(0, self.x_dim), ylim=(-50, 50))
-        #self.axes["torque"] = fig.add_subplot(gs[1, :], xlim=(0, self.x_dim), ylim=(-10, 10))
-        self.axes["force"] = fig.add_subplot(gs[0, :], xlim=(0, self.x_dim),  ylim=(-1.5, 1.5))
-        self.axes["torque"] = fig.add_subplot(gs[1, :], xlim=(0, self.x_dim), ylim=(-1.5, 1.5))
-
+        ati_force_scale = (-200, 200)
+        ati_torque_scale = (-15, 15)
+        volt_scale = (-0.05, 0.05)
+        use_volt = dict_opt["use_volt"]
+        iit_force_scale = volt_scale if use_volt else ati_force_scale
+        iit_torque_scale = volt_scale if use_volt else ati_torque_scale
+        
         if self.ati:
-            self.axes["aforce"] = fig.add_subplot(gs[2, :], xlim=(0, self.x_dim), ylim=(-200, 200))
-            self.axes["atorque"] = fig.add_subplot(gs[3, :], xlim=(0, self.x_dim), ylim=(-15, 15))
+            self.axes["force"]   = fig.add_subplot(gs[0, :], xlim=(0, self.x_dim), ylim=iit_force_scale)
+            self.axes["torque"]  = fig.add_subplot(gs[2, :], xlim=(0, self.x_dim), ylim=iit_torque_scale)
+            self.axes["aforce"]  = fig.add_subplot(gs[1, :], xlim=(0, self.x_dim), ylim=ati_force_scale)
+            self.axes["atorque"] = fig.add_subplot(gs[3, :], xlim=(0, self.x_dim), ylim=ati_torque_scale)
         else:
+            self.axes["force"]  = fig.add_subplot(gs[0, :], xlim=(0, self.x_dim), ylim=iit_force_scale)
+            self.axes["torque"] = fig.add_subplot(gs[1, :], xlim=(0, self.x_dim), ylim=iit_torque_scale)
             self.axes["rtt"]    = fig.add_subplot(gs[2, :], xlim=(0, self.x_dim), ylim=(900, 2100))
 
         self.lines['_force_x'],  = self.axes["force"].plot([], [], lw=1, label='Fx')
         self.lines['_force_y'],  = self.axes["force"].plot([], [], lw=1, label='Fy')
         self.lines['_force_z'],  = self.axes["force"].plot([], [], lw=1, label='Fz')
-        #self.lines['_torque_x'], = self.axes["force"].plot([], [], lw=1, label='Tx')
         self.lines['_torque_x'], = self.axes["torque"].plot([], [], lw=1, label='Tx')
         self.lines['_torque_y'], = self.axes["torque"].plot([], [], lw=1, label='Ty')
         self.lines['_torque_z'], = self.axes["torque"].plot([], [], lw=1, label='Tz')
         if self.ati:
-            self.lines['_aforce_x'],  = self.axes["aforce"].plot([], [], lw=1, label='Fx')
-            self.lines['_aforce_y'],  = self.axes["aforce"].plot([], [], lw=1, label='Fy')
-            self.lines['_aforce_z'],  = self.axes["aforce"].plot([], [], lw=1, label='Fz')
-            self.lines['_atorque_x'], = self.axes["atorque"].plot([], [], lw=1, label='Tx')
-            self.lines['_atorque_y'], = self.axes["atorque"].plot([], [], lw=1, label='Ty')
-            self.lines['_atorque_z'], = self.axes["atorque"].plot([], [], lw=1, label='Tz')
+            self.lines['_aforce_x'],  = self.axes["aforce"].plot([], [], lw=1, label='Fx_a')
+            self.lines['_aforce_y'],  = self.axes["aforce"].plot([], [], lw=1, label='Fy_a')
+            self.lines['_aforce_z'],  = self.axes["aforce"].plot([], [], lw=1, label='Fz_a')
+            self.lines['_atorque_x'], = self.axes["atorque"].plot([], [], lw=1, label='Tx_a')
+            self.lines['_atorque_y'], = self.axes["atorque"].plot([], [], lw=1, label='Ty_a')
+            self.lines['_atorque_z'], = self.axes["atorque"].plot([], [], lw=1, label='Tz_a')
         else:
             self.lines['_rtt'],      = self.axes["rtt"].plot([], [], lw=1, label='rtt')
 
