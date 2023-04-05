@@ -6,6 +6,7 @@ import datetime
 import pprint
 import zmq
 import json
+import csv
 from collections import defaultdict
 from optparse import OptionParser
 from protobuf_to_dict import protobuf_to_dict
@@ -14,6 +15,13 @@ import sys
 sys.path.append('/home/amargan/work/code/ecat_dev/ecat_master_advr/build/protobuf')
 import ecat_pdo_pb2
 import repl_cmd_pb2
+
+def write_csv(filename:str, data:list, keys:list ):
+    with open(filename, "w", newline="") as fp:
+        writer = csv.DictWriter(fp, fieldnames=keys,extrasaction='ignore')
+        writer.writeheader()
+        for d in data :
+            writer.writerow(d)
 
 def zmq_pub_gen(hostname, port_range):
     def gen():
@@ -175,7 +183,10 @@ class ZMQ_sub(threading.Thread):
         self.zmq_msg_sub = kwargs.get('zmq_msg_sub')
         self.signals = kwargs.get('signals')        
         self.callback = cb_map[kwargs.get('cb', 'default_cb')]
-        
+        self.print_freq = datetime.timedelta(seconds=0,milliseconds=500) # 2Hz
+        self.stop_time = datetime.timedelta(hours=1,seconds=0)
+        self.logdata = list()
+
         assert self.zmq_context
         self.subscriber = self.zmq_context.socket(zmq.SUB)
         for msg in self.zmq_msg_sub:
@@ -195,6 +206,7 @@ class ZMQ_sub(threading.Thread):
     def run(self):
         # poll on sockets
         print("...start thread activity")
+        msg_id = out_data = None
         start_time = datetime.datetime.now()
         previous = datetime.datetime.now()
         self.msg_loop = datetime.timedelta()
@@ -206,7 +218,6 @@ class ZMQ_sub(threading.Thread):
             if self.subscriber in socks and socks[self.subscriber] == zmq.POLLIN:
                 now = datetime.datetime.now()
                 self.msg_loop = now - previous
-                previous = now
                 try:
                     msg_id, data = self.subscriber.recv_multipart()
                     msg_id = msg_id.decode('utf-8')
@@ -217,8 +228,13 @@ class ZMQ_sub(threading.Thread):
                 
                 msg_id, out_data = self.callback(msg_id, data, self.signals)
                 if __name__ == '__main__':
-                    pprint.pprint((msg_id, out_data))
-
+                    if (now - previous) > self.print_freq : 
+                        pprint.pprint((msg_id, out_data))
+                        self.logdata.append(out_data)
+                        previous = now
+                    if (now - start_time) > self.stop_time :
+                        break
+                        
             else:
                 print(datetime.datetime.now(), socks, ("poller timeout"))
 
@@ -226,7 +242,11 @@ class ZMQ_sub(threading.Thread):
 
     def stop(self):
         self.stop_event.set()
-
+        if len(self.logdata) :
+            #csv keys ... f[or]ce t[or]que
+            keys = [k for k in self.logdata[0].keys() if "or" in k]
+            write_csv("logdata.csv",self.logdata,keys)
+        
 
 class ZMQ_sub_buffered(ZMQ_sub):
 
@@ -277,8 +297,8 @@ def zmq_sub_option(args):
     # one ctx for each process
     dict_opt['zmq_context'] = zmq.Context()
     gen_pub_zmq = zmq_pub_gen(dict_opt['zmq_pub_gen_host'],
-                              [int(x) for x in dict_opt['zmq_pub_gen_port'].split(',')
-                               if len(dict_opt['zmq_pub_gen_port'])])
+                            [int(x) for x in dict_opt['zmq_pub_gen_port'].split(',')
+                            if len(dict_opt['zmq_pub_gen_port'])])
     print(gen_pub_zmq)
     if len(gen_pub_zmq):
         dict_opt['zmq_pub'] = gen_pub_zmq
