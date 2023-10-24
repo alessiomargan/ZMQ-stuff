@@ -100,39 +100,42 @@ class LivePlot(object):
         for ax in self.axes.values():
             ax.legend()
             ax.grid()
-
-        self.ani = animation.FuncAnimation(fig, self.animate, interval=50, blit=True)
+        # NOTE matplotlib animated plot wont update labels on axis using blit 
+        self.ani = animation.FuncAnimation(fig, self.animate, interval=50, blit=False)
         self.th.start()
         self.show()
 
     def animate(self, i):
         new_data = self.th.next()
-
-        for k in self.plot_data.keys():
+        #for k in self.plot_data.keys():
+        for k in new_data.keys():
             self.plot_data[k].extend(new_data[k])
             self.plot_data[k] = self.plot_data[k][-self.x_dim:]
-
-        x = np.arange(len(self.plot_data[self.th.key_prefix+'_force_x']))
-
+        #print(self.plot_data.keys())
+        #print(len(self.plot_data[self.th.key_prefix+'_force_x']))
+        #x = np.arange(len(self.plot_data[self.th.key_prefix+'_force_x']))
+        
+        min_F = max_F = min_T = max_T = 0
+            
         for name, lin in self.lines.items():
+            x = np.arange(len(self.plot_data[self.th.key_prefix+name]))
             y = np.array(self.plot_data[self.th.key_prefix + name])
+            #print(f"{len(x)} {len(y)} {name}")
             lin.set_data(x, y)
-
-            if 0 and len(y):
-                ax = None
+            
+            if len(y) :
                 if name in ('_force_x', '_force_y', '_force_z'):
                     ax = self.axes["force"]
+                    min_F = y.min() if min_F > y.min() else min_F
+                    max_F = y.max() if max_F < y.max() else max_F
                 elif name in ('_torque_x', '_torque_y', '_torque_z'):
                     ax = self.axes["torque"]
-
-                if 1 and ax:
-                    mi, ma = ax.get_ylim()
-                    ymin = y.min()
-                    ymax = y.max()
-                    #print(ymin, ymax, mi, ma)
-                    ax.set_ylim(ymin - 0.1 * (ymax - ymin), ymax + 0.1 * (ymax - ymin))
-
-
+                    min_T = y.min() if min_T > y.min() else min_T
+                    max_T = y.max() if max_T < y.max() else max_T
+        
+        self.axes["force"].set_ylim(min_F - 0.15 * (max_F - min_F), max_F + 0.15 * (max_F - min_F))
+        self.axes["torque"].set_ylim(min_T - 0.15 * (max_T - min_T), max_T + 0.15 * (max_T - min_T))
+        
         return self.lines.values()
 
     @staticmethod

@@ -96,11 +96,7 @@ def protobuf_cb(msg_id, data, signals):
     pb_dict = protobuf_to_dict(rx_pdo)
 
     try:
-        if rx_pdo.type == rx_pdo.RX_XT_MOTOR:
-            # motor pdo56 byte
-            pb_dict = filter_dict('motor_xt_rx_pdo', pb_dict)
-
-        elif rx_pdo.type == rx_pdo.RX_MOTOR:
+        if rx_pdo.type == rx_pdo.RX_MOTOR:
             pb_dict = filter_dict('motor_rx_pdo', pb_dict)
 
         elif rx_pdo.type == rx_pdo.RX_FT6:
@@ -111,20 +107,6 @@ def protobuf_cb(msg_id, data, signals):
                 pb_dict.pop('ft_ati_rx')
             except KeyError:
                 pass
-
-        elif rx_pdo.type == rx_pdo.RX_FOOT_SENS:
-            pb_dict = filter_dict('footWalkman_rx_pdo', pb_dict)
-
-        elif rx_pdo.type == rx_pdo.RX_SKIN_SENS:
-            pb_dict = filter_dict('skin_rx_pdo', pb_dict)
-            # a = np.array(pb_dict['forceXY'])
-            # a = np.array([1 if z > 5 else 0 for z in pb_dict['forceXY']] )
-            # b = np.reshape(a, (8, 3))
-            # c = b.transpose()
-            # print (c)
-
-        elif rx_pdo.type == rx_pdo.RX_MC_HAND:
-            pb_dict = filter_dict('mcHand_rx_pdo', pb_dict)
 
         elif rx_pdo.type == rx_pdo.RX_HERI_HAND:
             pb_dict = filter_dict('heriHand_rx_pdo', pb_dict)
