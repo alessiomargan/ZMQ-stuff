@@ -73,16 +73,20 @@ class LivePlot(object):
 
     def animate(self, i):
         new_data = self.th.next()
-
-        for k in self.plot_data.keys():
+        #for k in self.plot_data.keys():
+        for k in new_data.keys():
             self.plot_data[k].extend(new_data[k])
             self.plot_data[k] = self.plot_data[k][-self.x_dim:]
-
-        x = np.arange(len(self.plot_data[self.th.key_prefix+'_motor_pos']))
+        #print(self.plot_data.keys())
+        #print(len(self.plot_data[self.th.key_prefix+'_force_x']))
+        #x = np.arange(len(self.plot_data[self.th.key_prefix+'_motor_pos']))
 
         for name, lin in self.lines.items():
+            x = np.arange(len(self.plot_data[self.th.key_prefix+name]))
             y = np.array(self.plot_data[self.th.key_prefix + name])
-
+            #print(f"{len(x)} {len(y)} {name}")
+            lin.set_data(x, y)
+            min_ = max_ = 0
             if len(y):
                 ax = None
                 if name in ('_motor_vel', '_link_vel'):
@@ -94,14 +98,9 @@ class LivePlot(object):
                 if name in ('_aux',):
                     ax = self.axes["aux"]
                 if ax:
-                    mi, ma = ax.get_ylim()
-                    ymin = y.min()
-                    ymax = y.max()
-                    #print(ymin, ymax, mi, ma)
-                    ax.set_ylim(ymin - 0.1 * (ymax - ymin), ymax + 0.1 * (ymax - ymin))
-                    #ax.figure.canvas.draw()
-
-            lin.set_data(x, y)
+                    min_ = y.min() if min_ > y.min() else min_
+                    max_ = y.max() if max_ < y.max() else max_
+                    ax.set_ylim(min_ - 0.15 * (max_ - min_), max_ + 0.15 * (max_ - min_))        
 
         return self.lines.values()
 
