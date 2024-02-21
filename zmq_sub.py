@@ -43,7 +43,7 @@ def zmq_pub_gen(hostname, port_range):
 # DEFAULT_ZMQ_PUB = zmq_pub_gen('coman-disney.local', range(9001,9038))
 # DEFAULT_ZMQ_PUB = zmq_pub_gen('coman-disney.local', [9034,9035,9036,9037])
 # DEFAULT_ZMQ_PUB = zmq_pub_gen('coman-disney.local', [9037])
-DEFAULT_ZMQ_PUB = zmq_pub_gen('localhost', range(9100, 9200))
+DEFAULT_ZMQ_PUB = zmq_pub_gen('localhost', range(9000, 9010))
 # DEFAULT_ZMQ_PUB = zmq_pub_gen('localhost', range(9801,9804))
 # DEFAULT_ZMQ_PUB = zmq_pub_gen('com-exp.local', range(9500,9600))
 # DEFAULT_ZMQ_PUB = zmq_pub_gen('com-exp.local', [9501,10103,10104])
@@ -165,7 +165,7 @@ class ZMQ_sub(threading.Thread):
         self.zmq_msg_sub = kwargs.get('zmq_msg_sub')
         self.signals = kwargs.get('signals')        
         self.callback = cb_map[kwargs.get('cb', 'default_cb')]
-        self.print_freq = datetime.timedelta(seconds=0,milliseconds=500) # 2Hz
+        self.print_freq = datetime.timedelta(seconds=1/kwargs.get('hz')) # default 2Hz
         self.stop_time = datetime.timedelta(hours=1,seconds=0)
         self.logdata = list()
 
@@ -266,13 +266,14 @@ def zmq_sub_option(args):
     parser = OptionParser()
     parser.add_option("--zmq-pub", action="store", type="string", dest="zmq_pub", default=DEFAULT_ZMQ_PUB)
     parser.add_option("--zmq-msg-sub", action="store", type="string", dest="zmq_msg_sub", default="")
-    parser.add_option("--zmq-pub-gen-host", action="store", type="string", dest="zmq_pub_gen_host", default="")
+    parser.add_option("--zmq-pub-gen-host", action="store", type="string", dest="zmq_pub_gen_host", default="localhost")
     parser.add_option("--zmq-pub-gen-port", action="store", type="string", dest="zmq_pub_gen_port", default="")
     parser.add_option("--signals", action="store", type="string", dest="signals", default="")
     parser.add_option("--cb", action="store", type="string", dest="cb", default="protobuf_cb")
     # used in wx_animation
     parser.add_option("--key", action="store", type="string", dest="key_prefix", default="")
-    parser.add_option("--volt", action="store_true", dest="use_volt")
+    parser.add_option("--volt", action="store_true", dest="use_volt", help="used for FT calib")
+    parser.add_option("--hz", action="store", type="int", dest="hz", default=5, help="stdout print freq")
     (options, args) = parser.parse_args(args=args)
     dict_opt = vars(options)
 
@@ -298,7 +299,7 @@ if __name__ == '__main__':
     import operator
     
     opts = zmq_sub_option(sys.argv[1:])
-    
+    pprint.pprint(opts)
     th = ZMQ_sub(**opts)
     th.start()
     try:
