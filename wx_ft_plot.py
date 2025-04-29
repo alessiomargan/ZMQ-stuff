@@ -7,9 +7,9 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.gridspec as gridspec
-import seaborn as sns
+#import seaborn as sns
 
-sns.set()
+#sns.set()
 
 from zmq_sub import zmq_sub_option, ZMQ_sub_buffered
 

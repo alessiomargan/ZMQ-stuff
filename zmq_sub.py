@@ -13,6 +13,7 @@ from protobuf_to_dict import protobuf_to_dict
 
 import sys
 sys.path.append('/home/amargan/work/code/ecat_dev/ecat_master_advr/build/protobuf')
+sys.path.append('/home/amargan/work/code/ecat_dev/ecat_master_advr/build/python/ecat_master_pb')
 import ecat_pdo_pb2
 import repl_cmd_pb2
 
@@ -94,7 +95,7 @@ def protobuf_cb(msg_id, data, signals):
     rx_pdo = ecat_pdo_pb2.Ec_slave_pdo()
     rx_pdo.ParseFromString(data)
     pb_dict = protobuf_to_dict(rx_pdo)
-
+    
     try:
         if rx_pdo.type == rx_pdo.RX_MOTOR:
             pb_dict = filter_dict('motor_rx_pdo', pb_dict)

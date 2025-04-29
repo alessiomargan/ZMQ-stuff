@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 import sys
 import numpy as np
+import pprint
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
@@ -73,14 +74,15 @@ class LivePlot(object):
 
     def animate(self, i):
         new_data = self.th.next()
-        #for k in self.plot_data.keys():
-        for k in new_data.keys():
+        for k in self.plot_data.keys():
+        #for k in new_data.keys():
             self.plot_data[k].extend(new_data[k])
             self.plot_data[k] = self.plot_data[k][-self.x_dim:]
+        pprint.pprint(new_data)
         #print(self.plot_data.keys())
-        #print(len(self.plot_data[self.th.key_prefix+'_force_x']))
+        print(len(self.plot_data[self.th.key_prefix+'_motor_pos']))
         #x = np.arange(len(self.plot_data[self.th.key_prefix+'_motor_pos']))
-
+        
         for name, lin in self.lines.items():
             x = np.arange(len(self.plot_data[self.th.key_prefix+name]))
             y = np.array(self.plot_data[self.th.key_prefix + name])
